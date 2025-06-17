@@ -6,6 +6,9 @@
 .cache
 dist
 
+# Data Sqlite 文件
+data
+
 # Node dependencies
 node_modules
 
