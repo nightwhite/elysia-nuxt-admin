@@ -1,0 +1,112 @@
+import { bearer } from "@elysiajs/bearer"
+import { cors } from "@elysiajs/cors"
+import { swagger } from "@elysiajs/swagger"
+import { Elysia } from "elysia"
+
+// 导入数据库初始化函数
+import { initDatabase } from "./db"
+
+// 导入路由文件
+import admin from "./routes/admin"
+import users from "./routes/users"
+import menus from "./routes/menus"
+
+// 初始化数据库
+initDatabase()
+
+// 获取当前文件所在目录的绝对路径
+const __dirname = new URL('.', import.meta.url).pathname
+
+// 创建主应用实例
+export const app = new Elysia()
+  .use(swagger({
+    documentation: {
+      info: {
+        title: "Admin Template API",
+        description: "基于 Nuxt + Elysia + shadcn-vue 的管理系统模板 API",
+        version: "1.0.0",
+        contact: {
+          name: "Admin Template Team",
+        },
+      },
+      servers: [
+        {
+          url: "http://localhost:3000",
+          description: "开发环境",
+        },
+      ],
+      tags: [
+        {
+          name: "基础接口",
+          description: "基础服务接口",
+        },
+        {
+          name: "管理接口",
+          description: "管理相关接口",
+        },
+        {
+          name: "用户接口",
+          description: "用户管理接口",
+        },
+        {
+          name: "菜单接口",
+          description: "菜单管理接口",
+        },
+      ],
+    },
+  }))
+  .use(bearer())
+  .use(cors())
+  .get("/", "Hello Admin", {
+    detail: {
+      tags: ["基础接口"],
+      summary: "服务健康检查",
+      description: "检查服务是否正常运行",
+      responses: {
+        200: {
+          description: "服务正常",
+          content: {
+            "text/plain": {
+              schema: {
+                type: "string",
+                example: "Hello Admin",
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  .get("/hello", () => ({ message: "Hello world!" }), {
+    detail: {
+      tags: ["基础接口"],
+      summary: "Hello World 接口",
+      description: "返回 Hello World 消息",
+      responses: {
+        200: {
+          description: "成功响应",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  message: {
+                    type: "string",
+                    example: "Hello world!",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  // 使用各种路由模块
+  .use(admin)
+  .use(users)
+  .use(menus)
+
+console.log("Elysia server routes loaded")
+
+export type ElysiaApp = typeof app 

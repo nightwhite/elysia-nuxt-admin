@@ -1,0 +1,33 @@
+# 开发环境文件
+node_modules
+.nuxt
+.output
+.nitro
+.cache
+dist
+
+# 版本控制
+.git
+.gitignore
+
+# 编辑器配置
+.vscode
+.idea
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 环境变量
+.env
+.env.*
+
+# 日志文件
+*.log
+npm-debug.log*
+
+# 数据文件
+data/*
+!data/.gitkeep 
