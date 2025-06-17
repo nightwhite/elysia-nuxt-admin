@@ -1,6 +1,10 @@
 import { config } from "./config"
 import { app } from "./server"
 
+// 独立运行的后端服务器
+app.listen(config.PORT, () => console.log(`🦊 Standalone server started at http://localhost:${config.PORT}`))
+
+// 处理进程信号
 const signals = ["SIGINT", "SIGTERM"]
 
 for (const signal of signals) {
@@ -17,13 +21,4 @@ process.on("uncaughtException", (error) => {
 
 process.on("unhandledRejection", (error) => {
   console.error(error)
-})
-
-// 仅在非 Nuxt 环境下直接运行此文件时启动服务器
-// 在 Nuxt 环境中，会通过 api.ts 导出
-// 使用 ES 模块方式判断是否为主模块
-if (import.meta.url === `file://${process.argv[1]}`) {
-  app.listen(config.PORT, () => console.log(`🦊 Server started at ${app.server?.url.origin}`))
-}
-
-export default app 
+}) 

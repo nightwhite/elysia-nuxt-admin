@@ -31,7 +31,7 @@
 
 ```bash
 # 克隆项目
-git clone <your-repo-url>
+git clone https://github.com/nightwhite/elysia-nuxt-admin
 
 # 进入项目目录
 cd admin-system-template
@@ -47,7 +47,16 @@ bun install
 bun dev
 ```
 
-访问 http://localhost:3000 查看应用。
+访问 <http://localhost:3000> 查看应用。
+
+### 单独启动后端
+
+```bash
+bun run server
+    
+```
+
+访问swagger文档 <http://localhost:3001/swagger>
 
 ### 构建
 
@@ -61,7 +70,7 @@ bun run preview
 
 ## 项目结构
 
-```
+```txt
 admin-system-template/
 ├── api.ts                 # API 类型定义
 ├── app.vue               # 应用入口
@@ -96,10 +105,6 @@ admin-system-template/
 - 动态菜单配置
 - 菜单权限控制
 - 菜单排序
-
-### API 文档
-
-访问 http://localhost:3000/api/swagger 查看完整的 API 文档。
 
 ## 开发指南
 

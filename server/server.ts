@@ -14,9 +14,6 @@ import menus from "./routes/menus"
 // 初始化数据库
 initDatabase()
 
-// 获取当前文件所在目录的绝对路径
-const __dirname = new URL('.', import.meta.url).pathname
-
 // 创建主应用实例
 export const app = new Elysia()
   .use(swagger({
@@ -31,9 +28,9 @@ export const app = new Elysia()
       },
       servers: [
         {
-          url: "http://localhost:3000",
+          url: "/",  // 使用相对路径，更灵活
           description: "开发环境",
-        },
+        }
       ],
       tags: [
         {
@@ -53,7 +50,21 @@ export const app = new Elysia()
           description: "菜单管理接口",
         },
       ],
-    },
+      components: {
+        securitySchemes: {
+          bearerAuth: {
+            type: "http",
+            scheme: "bearer",
+            bearerFormat: "JWT"
+          }
+        }
+      },
+      security: [
+        {
+          bearerAuth: []
+        }
+      ]
+    }
   }))
   .use(bearer())
   .use(cors())

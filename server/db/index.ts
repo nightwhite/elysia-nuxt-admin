@@ -83,9 +83,12 @@ export function initDatabase() {
     db.run(`INSERT INTO roles (name, description) VALUES ('user', '普通用户')`);
 
     // 插入默认菜单
-    db.run(`INSERT INTO menus (parent_id, title, path, icon, sort_order) VALUES (NULL, '仪表盘', '/dashboard', 'LayoutDashboard', 0)`);
-    db.run(`INSERT INTO menus (parent_id, title, path, icon, sort_order) VALUES (NULL, '用户管理', '/users', 'Users', 1)`);
-    db.run(`INSERT INTO menus (parent_id, title, path, icon, sort_order) VALUES (NULL, '系统设置', '/settings', 'Settings', 2)`);
+    db.run(`INSERT INTO menus (id, parent_id, title, path, icon, sort_order) VALUES (1, NULL, '仪表盘', '/dashboard', 'LayoutDashboard', 0)`);
+    db.run(`INSERT INTO menus (id, parent_id, title, path, icon, sort_order) VALUES (2, NULL, '用户管理', '/userManager', 'Users', 1)`);
+    db.run(`INSERT INTO menus (id, parent_id, title, path, icon, sort_order) VALUES (3, NULL, '系统设置', '/settings', 'Settings', 9)`);
+    db.run(`INSERT INTO menus (id, parent_id, title, path, icon, sort_order) VALUES (4, NULL, '菜单管理', '/menusManager', 'Menu', 3)`);
+    db.run(`INSERT INTO menus (id, parent_id, title, path, icon, sort_order) VALUES (5, NULL, '测试', '', 'CircleDashed', 8)`);
+    db.run(`INSERT INTO menus (id, parent_id, title, path, icon, sort_order) VALUES (6, 5, '测试', '/test', 'Bot', 0)`);
   }
 
   console.log("数据库初始化完成");

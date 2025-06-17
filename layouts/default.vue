@@ -20,28 +20,28 @@
         <div class="flex-1"></div>
         
         <div class="flex items-center">
-          <div v-if="user" class="flex items-center gap-3 justify-end min-w-[200px]">
+          <div v-if="user" class="flex items-center gap-3">
             <DropdownMenu>
-              <DropdownMenuTrigger class="outline-none w-full">
-                <div class="flex items-center justify-end gap-2 px-2 py-1 rounded-md hover:bg-muted transition-colors">
+              <DropdownMenuTrigger class="outline-none">
+                <div class="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-muted transition-colors">
                   <Avatar class="h-8 w-8 border border-border">
                     <AvatarImage v-if="user.avatar" :src="user.avatar" />
                     <AvatarFallback class="bg-primary/10 text-primary font-medium">
-                      {{ user.name.substring(0, 2) }}
+                      {{ user.name.substring(0, 1) }}
                     </AvatarFallback>
                   </Avatar>
-                  <div class="hidden md:flex flex-col items-end text-sm">
+                  <div class="hidden md:flex flex-col items-start text-sm">
                     <div class="font-medium">{{ user.name }}</div>
                     <div class="text-xs text-muted-foreground">{{ user.role === 'admin' ? '系统管理员' : '用户' }}</div>
                   </div>
                   <ChevronDown class="h-4 w-4 text-muted-foreground hidden md:block" />
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" class="w-56">
-                <div class="flex items-center justify-start gap-2 p-2 md:hidden">
+              <DropdownMenuContent align="end" class="w-48">
+                <div class="flex flex-col gap-1 p-2 md:hidden">
                   <div class="font-medium">{{ user.name }}</div>
-                  <div class="text-xs text-muted-foreground rounded-full px-2 py-1 bg-muted">
-                    {{ user.role === 'admin' ? '管理员' : '用户' }}
+                  <div class="text-xs text-muted-foreground">
+                    {{ user.role === 'admin' ? '系统管理员' : '用户' }}
                   </div>
                 </div>
                 <DropdownMenuSeparator class="md:hidden" />

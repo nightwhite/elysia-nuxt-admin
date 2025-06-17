@@ -16,28 +16,6 @@
           <li>Bun - 高性能 JavaScript 运行时</li>
         </ul>
       </CardContent>
-      <CardFooter class="flex flex-wrap gap-2">
-        <Button asChild>
-          <NuxtLink to="/dashboard">
-            查看仪表盘
-          </NuxtLink>
-        </Button>
-        <Button variant="outline" asChild>
-          <NuxtLink to="/userManager">
-            用户管理
-          </NuxtLink>
-        </Button>
-        <Button variant="outline" asChild>
-          <NuxtLink to="/menusManager">
-            菜单管理
-          </NuxtLink>
-        </Button>
-        <Button variant="secondary" asChild>
-          <NuxtLink to="/test">
-            API 测试
-          </NuxtLink>
-        </Button>
-      </CardFooter>
     </Card>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

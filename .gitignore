@@ -7,7 +7,7 @@
 dist
 
 # Data Sqlite 文件
-data
+data/
 
 # Node dependencies
 node_modules

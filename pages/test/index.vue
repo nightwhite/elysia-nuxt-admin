@@ -20,9 +20,6 @@
           {{ error }}
         </div>
       </CardContent>
-      <CardFooter class="flex justify-between">
-        <p class="text-xs text-gray-500">Powered by Elysia + shadcn-vue</p>
-      </CardFooter>
     </Card>
     
     <Card class="w-full max-w-md mx-auto">
@@ -70,13 +67,11 @@ const fetchHello = async () => {
   data.value = null
   
   try {
-    const response = await $api.hello.get()
-    
-    if (response.error) {
-      error.value = '调用 API 失败'
-    } else {
-      data.value = response.data
+    const response = await fetch('/api/hello')
+    if (!response.ok) {
+      throw new Error(`HTTP 错误: ${response.status}`)
     }
+    data.value = await response.json()
   } catch (e: any) {
     error.value = e.message || '调用 API 时发生错误'
   } finally {
@@ -110,7 +105,7 @@ const fetchUsers = async () => {
   
   try {
     // 直接使用 fetch 请求
-    const response = await fetch('/api/admin/users')
+    const response = await fetch('/api/users/list')
     if (!response.ok) {
       throw new Error(`HTTP 错误: ${response.status}`)
     }

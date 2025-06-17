@@ -6,7 +6,7 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['nuxt-elysia', 'shadcn-nuxt'],
   nuxtElysia: {
-    path: '/api'  // 将 Elysia 挂载到 /api 而不是默认的 /_api
+    path: '/api',  // 将 Elysia 挂载到 /api 而不是默认的 /_api
   },
   css: ['~/assets/css/tailwind.css'],
   vite: {

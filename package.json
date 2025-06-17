@@ -7,7 +7,8 @@
     "dev": "bun --bun nuxt dev",
     "generate": "bun --bun nuxt generate",
     "preview": "bun --bun nuxt preview",
-    "postinstall": "bun --bun nuxt prepare"
+    "postinstall": "bun --bun nuxt prepare",
+    "server": "NODE_ENV=development bun run server/index.ts"
   },
   "dependencies": {
     "@elysiajs/bearer": "^1.3.0",
