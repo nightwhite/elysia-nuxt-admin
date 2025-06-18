@@ -1,4 +1,4 @@
-import { Elysia, t } from "elysia";
+import { eventHandler, createError, getQuery, readBody, defineEventHandler } from 'h3';
 import {
   getAllUsers,
   getUserById,
@@ -14,403 +14,216 @@ import type {
   UpdateUserParams,
   UserFilterParams
 } from "../services/userService";
-import { getOne } from "../db";
-import { config } from "../config";
+import { logger } from "../utils/logger";
+import { requireAdmin, requireAuth } from "../middleware/auth";
+import { generateToken, refreshToken } from "../utils/jwt";
 
-/**
- * 用户路由模块
- */
-export const users = new Elysia({
-  prefix: "/users",
-})
+// 定义路由处理器
+const handlers = {
   /**
    * 获取所有用户
    */
-  .get("/list", () => getAllUsers(), {
-    detail: {
-      tags: ["用户接口"],
-      summary: "获取所有用户",
-      description: "返回系统中的所有用户",
-      responses: {
-        200: {
-          description: "成功响应",
-          content: {
-            "application/json": {
-              schema: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    id: { type: "number" },
-                    username: { type: "string" },
-                    name: { type: "string" },
-                    role: { type: "string" },
-                    email: { type: "string" },
-                    avatar: { type: "string" },
-                    created_at: { type: "string" },
-                    updated_at: { type: "string" },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  })
+  listUsers: defineEventHandler(async (event) => {
+    await requireAdmin(event);
+    return getAllUsers();
+  }),
+
   /**
    * 筛选用户
    */
-  .get("/filter", ({ query }) => {
+  filterUsers: defineEventHandler(async (event) => {
+    await requireAdmin(event);
+    const query = getQuery(event);
+    
     const filters: UserFilterParams = {
-      search: query.search,
-      role: query.role
+      search: query.search as string,
+      role: query.role as string
     };
     
     return getFilteredUsers(filters);
-  }, {
-    query: t.Object({
-      search: t.Optional(t.String()),
-      role: t.Optional(t.String()),
-    }),
-    detail: {
-      tags: ["用户接口"],
-      summary: "筛选用户",
-      description: "根据条件筛选用户",
-      responses: {
-        200: {
-          description: "成功响应",
-          content: {
-            "application/json": {
-              schema: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    id: { type: "number" },
-                    username: { type: "string" },
-                    name: { type: "string" },
-                    role: { type: "string" },
-                    email: { type: "string" },
-                    avatar: { type: "string" },
-                    created_at: { type: "string" },
-                    updated_at: { type: "string" },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  })
+  }),
+
   /**
    * 根据ID获取用户
    */
-  .get("/:id", ({ params }) => {
-    const user = getUserById(parseInt(params.id));
-    if (!user) {
-      return new Response(JSON.stringify({ error: "用户不存在" }), {
-        status: 404,
-        headers: { "Content-Type": "application/json" },
+  getUser: defineEventHandler(async (event) => {
+    await requireAuth(event);
+    const params = event.context.params || {};
+    const id = parseInt(params.id as string);
+    
+    // 普通用户只能查看自己的信息
+    if (event.context.user!.role !== 'admin' && event.context.user!.id !== id) {
+      throw createError({
+        statusCode: 403,
+        message: '没有权限访问'
       });
     }
-    return user;
-  }, {
-    params: t.Object({
-      id: t.String(),
-    }),
-    detail: {
-      tags: ["用户接口"],
-      summary: "根据ID获取用户",
-      description: "返回指定ID的用户信息",
-      responses: {
-        200: {
-          description: "成功响应",
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  id: { type: "number" },
-                  username: { type: "string" },
-                  name: { type: "string" },
-                  role: { type: "string" },
-                  email: { type: "string" },
-                  avatar: { type: "string" },
-                  created_at: { type: "string" },
-                  updated_at: { type: "string" },
-                },
-              },
-            },
-          },
-        },
-        404: {
-          description: "用户不存在",
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  error: { type: "string" },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  })
+    
+    const userInfo = getUserById(id);
+    if (!userInfo) {
+      throw createError({
+        statusCode: 404,
+        message: '用户不存在'
+      });
+    }
+    return userInfo;
+  }),
+
   /**
    * 创建用户
    */
-  .post("/", ({ body }) => {
+  createNewUser: defineEventHandler(async (event) => {
+    await requireAdmin(event);
+    const body = await readBody(event);
+    
     try {
-      const id = createUser(body);
+      const id = await createUser(body);
       return { id, success: true };
     } catch (error: any) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
+      throw createError({
+        statusCode: 400,
+        message: error.message
       });
     }
-  }, {
-    body: t.Object({
-      username: t.String(),
-      password: t.String(),
-      name: t.String(),
-      role: t.String(),
-      email: t.Optional(t.String()),
-      avatar: t.Optional(t.String()),
-    }),
-    detail: {
-      tags: ["用户接口"],
-      summary: "创建用户",
-      description: "创建新的用户",
-      responses: {
-        200: {
-          description: "创建成功",
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  id: { type: "number" },
-                  success: { type: "boolean" },
-                },
-              },
-            },
-          },
-        },
-        400: {
-          description: "创建失败",
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  error: { type: "string" },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  })
+  }),
+
   /**
    * 更新用户
    */
-  .put("/:id", ({ params, body }) => {
+  updateUserInfo: defineEventHandler(async (event) => {
+    await requireAuth(event);
+    const params = event.context.params || {};
+    const id = parseInt(params.id as string);
+    const body = await readBody(event);
+    
+    // 普通用户只能更新自己的信息，且不能更改角色
+    if (event.context.user!.role !== 'admin') {
+      if (event.context.user!.id !== id) {
+        throw createError({
+          statusCode: 403,
+          message: '没有权限访问'
+        });
+      }
+      if (body.role) {
+        throw createError({
+          statusCode: 403,
+          message: '无权更改角色'
+        });
+      }
+    }
+    
     try {
-      const success = updateUser(parseInt(params.id), body);
+      const success = await updateUser(id, body);
       if (!success) {
-        return new Response(JSON.stringify({ error: "更新失败" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
+        throw createError({
+          statusCode: 400,
+          message: '更新失败'
         });
       }
       return { success: true };
     } catch (error: any) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
+      throw createError({
+        statusCode: 400,
+        message: error.message
       });
     }
-  }, {
-    params: t.Object({
-      id: t.String(),
-    }),
-    body: t.Object({
-      name: t.Optional(t.String()),
-      role: t.Optional(t.String()),
-      email: t.Optional(t.String()),
-      avatar: t.Optional(t.String()),
-      password: t.Optional(t.String()),
-    }),
-    detail: {
-      tags: ["用户接口"],
-      summary: "更新用户",
-      description: "更新指定ID的用户信息",
-      responses: {
-        200: {
-          description: "更新成功",
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  success: { type: "boolean" },
-                },
-              },
-            },
-          },
-        },
-        400: {
-          description: "更新失败",
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  error: { type: "string" },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  })
+  }),
+
   /**
    * 删除用户
    */
-  .delete("/:id", ({ params }) => {
+  deleteUserById: defineEventHandler(async (event) => {
+    await requireAdmin(event);
+    const params = event.context.params || {};
+    const id = parseInt(params.id as string);
+    
     try {
-      const success = deleteUser(parseInt(params.id));
+      const success = deleteUser(id);
       return { success };
     } catch (error: any) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
+      throw createError({
+        statusCode: 400,
+        message: error.message
       });
     }
-  }, {
-    params: t.Object({
-      id: t.String(),
-    }),
-    detail: {
-      tags: ["用户接口"],
-      summary: "删除用户",
-      description: "删除指定ID的用户",
-      responses: {
-        200: {
-          description: "删除成功",
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  success: { type: "boolean" },
-                },
-              },
-            },
-          },
-        },
-        400: {
-          description: "删除失败",
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  error: { type: "string" },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  })
+  }),
+
   /**
    * 用户登录
    */
-  .post("/login", ({ body }) => {
-    console.log("登录请求:", body);
-    
-    const { username, password } = body;
-    
-    // 查询用户是否存在
-    const rawUser = getOne(`
-      SELECT * FROM users WHERE username = ?
-    `, [username]);
-    
-    console.log("数据库查询结果:", rawUser);
+  login: defineEventHandler(async (event) => {
+    const { username, password } = await readBody(event);
     
     // 尝试验证
-    const user = validateUser(username, password);
-    console.log("验证结果:", user ? "验证成功" : "验证失败");
+    const user = await validateUser(username, password);
+    logger.debug('用户验证结果', { success: !!user });
     
     if (!user) {
-      return new Response(JSON.stringify({ error: "用户名或密码错误" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
+      throw createError({
+        statusCode: 401,
+        message: '用户名或密码错误'
       });
     }
     
-    // 这里应该生成JWT令牌，但为了简单，我们只返回用户信息
+    // 生成JWT令牌
+    const token = await generateToken(user);
+    logger.debug('生成令牌成功');
+    
     return {
       user,
-      token: "mock-jwt-token",
+      token
     };
-  }, {
-    body: t.Object({
-      username: t.String(),
-      password: t.String(),
-    }),
-    detail: {
-      tags: ["用户接口"],
-      summary: "用户登录",
-      description: "验证用户登录并返回令牌",
-      responses: {
-        200: {
-          description: "登录成功",
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  user: {
-                    type: "object",
-                    properties: {
-                      id: { type: "number" },
-                      username: { type: "string" },
-                      name: { type: "string" },
-                      role: { type: "string" },
-                    },
-                  },
-                  token: { type: "string" },
-                },
-              },
-            },
-          },
-        },
-        401: {
-          description: "登录失败",
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  error: { type: "string" },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
+  }),
 
-export default users; 
+  /**
+   * 刷新令牌
+   */
+  refreshUserToken: defineEventHandler(async (event) => {
+    const authHeader = event.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    
+    if (!token) {
+      throw createError({
+        statusCode: 401,
+        message: '未提供令牌'
+      });
+    }
+    
+    try {
+      const newToken = await refreshToken(token);
+      logger.debug('令牌刷新成功');
+      return { token: newToken };
+    } catch (error) {
+      throw createError({
+        statusCode: 401,
+        message: '刷新令牌失败'
+      });
+    }
+  })
+};
+
+// 导出路由配置
+export default {
+  routes: {
+    '/list': {
+      get: handlers.listUsers
+    },
+    '/filter': {
+      get: handlers.filterUsers
+    },
+    '/:id': {
+      get: handlers.getUser,
+      put: handlers.updateUserInfo,
+      delete: handlers.deleteUserById
+    },
+    '/': {
+      post: handlers.createNewUser
+    },
+    '/login': {
+      post: handlers.login
+    },
+    '/refresh-token': {
+      post: handlers.refreshUserToken
+    }
+  }
+}; 

@@ -1,6 +1,7 @@
 import { Database } from "bun:sqlite";
 import fs from "node:fs";
 import path from "node:path";
+import { hashPassword } from '../utils/crypto';
 
 // 确保数据库目录存在
 const DB_DIR = path.join(process.cwd(), "data");
@@ -11,16 +12,33 @@ if (!fs.existsSync(DB_DIR)) {
 // 数据库文件路径
 const DB_PATH = path.join(DB_DIR, "admin.db");
 
-// 创建数据库连接
-export const db = new Database(DB_PATH);
+// 初始化数据库变量
+let db: Database | null = null;
 
-// 初始化数据库表
-export function initDatabase() {
+/**
+ * 数据库查询结果类型
+ */
+export interface QueryResult<T> {
+  get(...params: any[]): T | null;
+  all(...params: any[]): T[];
+  run(...params: any[]): { changes: number };
+}
+
+/**
+ * 初始化数据库
+ */
+export async function initDB() {
+  if (db) {
+    return db;
+  }
+
+  db = new Database(DB_PATH);
+  
   // 用户表
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT NOT NULL UNIQUE,
+      username TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
       name TEXT NOT NULL,
       role TEXT NOT NULL,
@@ -42,7 +60,7 @@ export function initDatabase() {
       sort_order INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (parent_id) REFERENCES menus(id)
+      FOREIGN KEY (parent_id) REFERENCES menus (id) ON DELETE CASCADE
     )
   `);
 
@@ -69,42 +87,58 @@ export function initDatabase() {
   `);
 
   // 检查是否需要插入初始数据
-  const adminUser = db.query("SELECT * FROM users WHERE username = 'admin'").get();
+  const adminUser = db.query('SELECT id FROM users WHERE username = ?').get('admin');
   
   if (!adminUser) {
     // 插入默认管理员用户
+    const hashedPassword = await hashPassword('Admin@123'); // 使用更安全的初始密码
+    
     db.run(`
       INSERT INTO users (username, password, name, role, email)
-      VALUES ('admin', 'admin123', '系统管理员', 'admin', 'admin@example.com')
-    `);
+      VALUES ('admin', ?, '系统管理员', 'admin', 'admin@example.com')
+    `, [hashedPassword]);
 
     // 插入默认角色
     db.run(`INSERT INTO roles (name, description) VALUES ('admin', '系统管理员')`);
     db.run(`INSERT INTO roles (name, description) VALUES ('user', '普通用户')`);
 
     // 插入默认菜单
-    db.run(`INSERT INTO menus (id, parent_id, title, path, icon, sort_order) VALUES (1, NULL, '仪表盘', '/dashboard', 'LayoutDashboard', 0)`);
-    db.run(`INSERT INTO menus (id, parent_id, title, path, icon, sort_order) VALUES (2, NULL, '用户管理', '/userManager', 'Users', 1)`);
-    db.run(`INSERT INTO menus (id, parent_id, title, path, icon, sort_order) VALUES (3, NULL, '系统设置', '/settings', 'Settings', 9)`);
-    db.run(`INSERT INTO menus (id, parent_id, title, path, icon, sort_order) VALUES (4, NULL, '菜单管理', '/menusManager', 'Menu', 3)`);
-    db.run(`INSERT INTO menus (id, parent_id, title, path, icon, sort_order) VALUES (5, NULL, '测试', '', 'CircleDashed', 8)`);
-    db.run(`INSERT INTO menus (id, parent_id, title, path, icon, sort_order) VALUES (6, 5, '测试', '/test', 'Bot', 0)`);
+    db.run(`INSERT INTO menus (id, parent_id, title, path, icon, sort_order) VALUES 
+      (1, NULL, '仪表盘', '/dashboard', 'LayoutDashboard', 0),
+      (2, NULL, '用户管理', '/userManager', 'Users', 1),
+      (3, NULL, '系统设置', '/settings', 'Settings', 9),
+      (4, NULL, '菜单管理', '/menusManager', 'Menu', 3),
+      (5, NULL, '测试', '', 'CircleDashed', 8),
+      (6, 5, '测试', '/test', 'Bot', 0)
+    `);
   }
 
   console.log("数据库初始化完成");
+
+  return db;
 }
 
-// 导出查询帮助函数
-export function getAll(query: string, params: any[] = []): any[] {
-  return db.query(query).all(...params);
+/**
+ * 获取数据库实例
+ */
+export function getDB(): Database {
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
+  return db;
 }
 
-export function getOne(query: string, params: any[] = []): any {
-  return db.query(query).get(...params);
+/**
+ * 执行查询并返回结果
+ */
+export function query<T extends Record<string, any>>(sql: string): QueryResult<T> {
+  const database = getDB();
+  const stmt = database.query(sql);
+  return {
+    get: (...params: any[]) => stmt.get(...params) as T | null,
+    all: (...params: any[]) => stmt.all(...params) as T[],
+    run: (...params: any[]) => ({ changes: database.run(sql, params).changes })
+  };
 }
 
-export function run(query: string, params: any[] = []): void {
-  db.run(query, params);
-}
-
-export default db; 
+export { db }; 

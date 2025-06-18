@@ -97,7 +97,23 @@ const isMenuActive = (item: MenuItem) => {
 const getIconComponent = (iconName?: string) => {
   if (!iconName) return null
   
-  // 检查图标是否存在
+  // 处理 heroicons 格式
+  if (iconName.startsWith('i-heroicons-')) {
+    // 转换图标名称格式
+    const baseName = iconName.replace('i-heroicons-', '')
+    // 转换为大驼峰命名
+    const lucideName = baseName
+      .split('-')
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+      .join('')
+    
+    // 检查图标是否存在
+    if (lucideName in LucideIcons) {
+      return (LucideIcons as any)[lucideName]
+    }
+  }
+  
+  // 直接检查 Lucide 图标
   if (iconName in LucideIcons) {
     return (LucideIcons as any)[iconName]
   }
@@ -124,7 +140,20 @@ const fetchMenus = async () => {
     }
     
     const data = await response.json()
-    menus.value = data.sort((a: MenuItem, b: MenuItem) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    
+    // 转换菜单数据结构
+    const transformMenuItem = (item: any): MenuItem => ({
+      id: item.id,
+      parent_id: item.parent_id,
+      title: item.title,
+      path: item.path || '',
+      icon: item.icon,
+      sort_order: item.sort_order,
+      children: item.children?.map(transformMenuItem)
+    })
+    
+    menus.value = data.map(transformMenuItem)
+      .sort((a: MenuItem, b: MenuItem) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
     
   } catch (e: any) {
     error.value = e.message || '获取菜单数据失败'

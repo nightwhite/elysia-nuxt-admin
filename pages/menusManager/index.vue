@@ -132,9 +132,9 @@ import { AlertTriangle, Save, Loader2, Trash, PlusIcon } from 'lucide-vue-next'
 import type { Menu } from '~/types/menu'
 
 // 导入拆分的组件
-import MenuList from '~/components/menu-manager/MenuList.vue'
-import MenuTree from '~/components/menu-manager/MenuTree.vue'
-import MenuForm from '~/components/menu-manager/MenuForm.vue'
+import MenuList from '~/components/menuManager/MenuList.vue'
+import MenuTree from '~/components/menuManager/MenuTree.vue'
+import MenuForm from '~/components/menuManager/MenuForm.vue'
 
 interface MenuTreeItem extends Menu {
   children: MenuTreeItem[];

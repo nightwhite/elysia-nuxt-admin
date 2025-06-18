@@ -195,8 +195,8 @@ export const menus = new Elysia()
    */
   .post("/menus", ({ body }) => {
     try {
-      const id = createMenu(body);
-      return { id, success: true };
+      const menu = createMenu(body);
+      return { id: menu.id, success: true };
     } catch (error: any) {
       return new Response(JSON.stringify({ error: error.message }), {
         status: 400,
@@ -251,13 +251,7 @@ export const menus = new Elysia()
    */
   .put("/menus/:id", ({ params, body }) => {
     try {
-      const success = updateMenu(parseInt(params.id), body);
-      if (!success) {
-        return new Response(JSON.stringify({ error: "更新失败" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
+      const menu = updateMenu(parseInt(params.id), body);
       return { success: true };
     } catch (error: any) {
       return new Response(JSON.stringify({ error: error.message }), {
@@ -272,8 +266,8 @@ export const menus = new Elysia()
     body: t.Object({
       parent_id: t.Optional(t.Union([t.Number(), t.Null()])),
       title: t.Optional(t.String()),
-      path: t.Optional(t.Union([t.String(), t.Null()])),
-      icon: t.Optional(t.Union([t.String(), t.Null()])),
+      path: t.Optional(t.String()),
+      icon: t.Optional(t.String()),
       sort_order: t.Optional(t.Number()),
     }),
     detail: {
@@ -315,14 +309,8 @@ export const menus = new Elysia()
    */
   .delete("/menus/:id", ({ params }) => {
     try {
-      const success = deleteMenu(parseInt(params.id));
-      if (!success) {
-        return new Response(JSON.stringify({ error: "该菜单有子菜单，无法删除" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      return { success };
+      deleteMenu(parseInt(params.id));
+      return { success: true };
     } catch (error: any) {
       return new Response(JSON.stringify({ error: error.message }), {
         status: 400,

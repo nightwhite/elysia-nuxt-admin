@@ -1,4 +1,6 @@
-import { getAll, getOne, db } from '../db';
+import { query } from "../db";
+import { AppError } from "../utils/errors";
+import { logger } from "../utils/logger";
 
 // 菜单类型定义
 export interface Menu {
@@ -10,6 +12,7 @@ export interface Menu {
   sort_order: number;
   created_at: string;
   updated_at: string;
+  children?: Menu[];
 }
 
 // 菜单创建参数
@@ -34,151 +37,201 @@ export interface UpdateMenuParams {
  * 获取所有菜单
  */
 export function getAllMenus(): Menu[] {
-  return getAll(`
-    SELECT id, parent_id, title, path, icon, sort_order, created_at, updated_at
-    FROM menus
-    ORDER BY sort_order, id
-  `);
+  try {
+    return query<Menu>(`
+      SELECT 
+        id,
+        parent_id,
+        title,
+        path,
+        icon,
+        sort_order,
+        created_at,
+        updated_at
+      FROM menus 
+      ORDER BY sort_order ASC
+    `).all();
+  } catch (error) {
+    logger.error("获取菜单列表失败:", error as Record<string, any>);
+    throw new AppError("获取菜单列表失败", 500);
+  }
 }
 
 /**
  * 获取菜单树
- * 将所有菜单转换为树形结构
  */
-export function getMenuTree(): any[] {
-  const menus = getAllMenus();
-  const menuMap: {[key: number]: any} = {};
-  const roots: any[] = [];
+export function getMenuTree(): Menu[] {
+  try {
+    const menus = query<Menu>(`
+      SELECT 
+        id,
+        parent_id,
+        title,
+        path,
+        icon,
+        sort_order,
+        created_at,
+        updated_at
+      FROM menus 
+      ORDER BY sort_order ASC
+    `).all();
+    return buildMenuTree(menus);
+  } catch (error) {
+    logger.error("获取菜单树失败:", error as Record<string, any>);
+    throw new AppError("获取菜单树失败", 500);
+  }
+}
 
-  // 将所有菜单添加到 Map 中
-  menus.forEach(menu => {
-    menuMap[menu.id] = {
+/**
+ * 构建菜单树
+ */
+function buildMenuTree(menus: Menu[], parentId: number | null = null): Menu[] {
+  return menus
+    .filter(menu => menu.parent_id === parentId)
+    .map(menu => ({
       ...menu,
-      children: []
-    };
-  });
-
-  // 构建树形结构
-  menus.forEach(menu => {
-    if (menu.parent_id === null) {
-      // 根菜单
-      roots.push(menuMap[menu.id]);
-    } else if (menuMap[menu.parent_id]) {
-      // 子菜单
-      menuMap[menu.parent_id].children.push(menuMap[menu.id]);
-    }
-  });
-
-  return roots;
+      children: buildMenuTree(menus, menu.id)
+    }));
 }
 
 /**
  * 根据ID获取菜单
  */
 export function getMenuById(id: number): Menu | null {
-  return getOne(`
-    SELECT id, parent_id, title, path, icon, sort_order, created_at, updated_at
+  return query<Menu>(`
+    SELECT 
+      id,
+      parent_id,
+      title,
+      path,
+      icon,
+      sort_order,
+      created_at,
+      updated_at
     FROM menus
     WHERE id = ?
-  `, [id]);
+  `).get(id);
 }
 
 /**
  * 创建菜单
  */
-export function createMenu(params: CreateMenuParams): number {
-  const { parent_id, title, path, icon, sort_order } = params;
-  
-  db.run(`
-    INSERT INTO menus (parent_id, title, path, icon, sort_order)
-    VALUES (?, ?, ?, ?, ?)
-  `, [parent_id || null, title, path || null, icon || null, sort_order || 0]);
-  
-  return db.query("SELECT last_insert_rowid() as id").get().id;
+export function createMenu(menu: CreateMenuParams): Menu {
+  try {
+    const result = query<Menu>(`
+      INSERT INTO menus (
+        parent_id, title, path, icon, sort_order
+      ) VALUES (?, ?, ?, ?, ?)
+      RETURNING *
+    `).get(
+      menu.parent_id || null,
+      menu.title,
+      menu.path || null,
+      menu.icon || null,
+      menu.sort_order || 0
+    );
+
+    if (!result) {
+      throw new AppError("创建菜单失败", 500);
+    }
+
+    return result;
+  } catch (error) {
+    logger.error("创建菜单失败:", error as Record<string, any>);
+    throw new AppError("创建菜单失败", 500);
+  }
 }
 
 /**
  * 更新菜单
  */
-export function updateMenu(id: number, params: UpdateMenuParams): boolean {
-  const fields: string[] = [];
-  const values: any[] = [];
-  
-  if (params.parent_id !== undefined) {
-    fields.push("parent_id = ?");
-    values.push(params.parent_id);
+export function updateMenu(id: number, menu: UpdateMenuParams): Menu {
+  try {
+    const updates: string[] = [];
+    const values: any[] = [];
+
+    // 构建更新语句
+    Object.entries(menu).forEach(([key, value]) => {
+      if (key !== 'id' && key !== 'created_at' && value !== undefined) {
+        updates.push(`${key} = ?`);
+        values.push(value);
+      }
+    });
+
+    if (updates.length === 0) {
+      throw new AppError("没有需要更新的内容", 400);
+    }
+
+    // 添加更新时间
+    updates.push('updated_at = CURRENT_TIMESTAMP');
+
+    // 添加ID条件
+    values.push(id);
+
+    const result = query<Menu>(`
+      UPDATE menus 
+      SET ${updates.join(', ')}
+      WHERE id = ?
+      RETURNING *
+    `).get(...values);
+
+    if (!result) {
+      throw new AppError("菜单不存在", 404);
+    }
+
+    return result;
+  } catch (error) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+    logger.error("更新菜单失败:", error as Record<string, any>);
+    throw new AppError("更新菜单失败", 500);
   }
-  
-  if (params.title) {
-    fields.push("title = ?");
-    values.push(params.title);
-  }
-  
-  if (params.path !== undefined) {
-    fields.push("path = ?");
-    values.push(params.path);
-  }
-  
-  if (params.icon !== undefined) {
-    fields.push("icon = ?");
-    values.push(params.icon);
-  }
-  
-  if (params.sort_order !== undefined) {
-    fields.push("sort_order = ?");
-    values.push(params.sort_order);
-  }
-  
-  // 更新时间
-  fields.push("updated_at = CURRENT_TIMESTAMP");
-  
-  if (fields.length === 0) {
-    return false;
-  }
-  
-  values.push(id);
-  
-  db.run(`
-    UPDATE menus
-    SET ${fields.join(", ")}
-    WHERE id = ?
-  `, values);
-  
-  return true;
 }
 
 /**
  * 删除菜单
  */
-export function deleteMenu(id: number): boolean {
-  // 查找子菜单
-  const children = getAll("SELECT id FROM menus WHERE parent_id = ?", [id]);
-  
-  // 如果有子菜单，则禁止删除
-  if (children.length > 0) {
-    return false;
+export function deleteMenu(id: number): void {
+  try {
+    const result = query<Menu>("DELETE FROM menus WHERE id = ?").run(id);
+    
+    if (!result.changes) {
+      throw new AppError("菜单不存在", 404);
+    }
+  } catch (error) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+    logger.error("删除菜单失败:", error as Record<string, any>);
+    throw new AppError("删除菜单失败", 500);
   }
-  
-  db.run("DELETE FROM menus WHERE id = ?", [id]);
-  return true;
 }
 
 /**
  * 根据角色获取菜单
  */
 export function getMenusByRole(role: string): Menu[] {
+  // 管理员角色获取所有菜单
   if (role === 'admin') {
-    // 管理员角色获取所有菜单
     return getAllMenus();
   }
   
   // 其他角色通过关联表获取
-  return getAll(`
-    SELECT m.id, m.parent_id, m.title, m.path, m.icon, m.sort_order, m.created_at, m.updated_at
+  return query<Menu>(`
+    SELECT 
+      m.id,
+      m.parent_id,
+      m.title,
+      m.path,
+      m.icon,
+      m.sort_order,
+      m.created_at,
+      m.updated_at
     FROM menus m
     JOIN role_menu rm ON m.id = rm.menu_id
     JOIN roles r ON rm.role_id = r.id
     WHERE r.name = ?
-    ORDER BY m.sort_order, m.id
-  `, [role]);
+    ORDER BY m.sort_order ASC
+  `).all(role);
 } 

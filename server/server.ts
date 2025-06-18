@@ -4,7 +4,7 @@ import { swagger } from "@elysiajs/swagger"
 import { Elysia } from "elysia"
 
 // 导入数据库初始化函数
-import { initDatabase } from "./db"
+import { initDB } from "./db"
 
 // 导入路由文件
 import admin from "./routes/admin"
@@ -12,7 +12,7 @@ import users from "./routes/users"
 import menus from "./routes/menus"
 
 // 初始化数据库
-initDatabase()
+initDB()
 
 // 创建主应用实例
 export const app = new Elysia()

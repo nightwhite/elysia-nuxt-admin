@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia"
-import { db } from "../db"
+import { getDB } from "../db"
 
 /**
  * 管理接口路由模块
@@ -41,7 +41,8 @@ export const admin = new Elysia()
    */
   .get("/admin/debug/users", () => {
     // 调试接口，获取所有用户（包含密码，仅用于调试）
-    const users = db.query(`SELECT * FROM users`).all();
+    const db = getDB();
+    const users = db.query("SELECT * FROM users").all();
     return users;
   }, {
     detail: {
@@ -55,6 +56,7 @@ export const admin = new Elysia()
    */
   .get("/admin/dashboard", () => {
     // 获取各种统计数据
+    const db = getDB();
     const userCount = db.query("SELECT COUNT(*) as count FROM users").get().count;
     const menuCount = db.query("SELECT COUNT(*) as count FROM menus").get().count;
     const roleCount = db.query("SELECT COUNT(*) as count FROM roles").get().count;
@@ -122,6 +124,7 @@ export const admin = new Elysia()
    */
   .get("/admin/db/tables", () => {
     // 获取数据库中的所有表
+    const db = getDB();
     const tables = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all();
     return tables;
   }, {
@@ -154,6 +157,7 @@ export const admin = new Elysia()
    */
   .get("/admin/db/table/:name", ({ params }) => {
     // 获取表结构
+    const db = getDB();
     const schema = db.query(`PRAGMA table_info(${params.name})`).all();
     
     // 获取表数据（限制返回条数）
@@ -212,6 +216,7 @@ export const admin = new Elysia()
    */
   .post("/admin/db/query", ({ body }) => {
     try {
+      const db = getDB();
       const result = db.query(body.sql).all();
       return { success: true, data: result };
     } catch (error: any) {

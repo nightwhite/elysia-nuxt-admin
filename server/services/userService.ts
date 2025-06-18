@@ -1,4 +1,6 @@
-import { db, getAll, getOne } from '../db';
+import { getDB, query } from '../db';
+import { hashPassword, verifyPassword, validatePasswordStrength } from '../utils/crypto';
+import { ValidationError, NotFoundError } from '../utils/errors';
 
 // 用户类型定义
 export interface User {
@@ -49,7 +51,7 @@ export interface UserFilterParams {
  * 获取筛选后的用户
  */
 export function getFilteredUsers(filters: UserFilterParams): User[] {
-  let query = `
+  let sql = `
     SELECT id, username, name, role, email, avatar, created_at, updated_at 
     FROM users
     WHERE 1=1
@@ -59,13 +61,13 @@ export function getFilteredUsers(filters: UserFilterParams): User[] {
   
   // 按角色筛选
   if (filters.role && filters.role !== 'all') {
-    query += ` AND role = ?`;
+    sql += ` AND role = ?`;
     params.push(filters.role);
   }
   
   // 按关键词搜索
   if (filters.search && filters.search.trim()) {
-    query += ` AND (
+    sql += ` AND (
       username LIKE ? OR 
       name LIKE ? OR 
       email LIKE ?
@@ -74,89 +76,130 @@ export function getFilteredUsers(filters: UserFilterParams): User[] {
     params.push(searchTerm, searchTerm, searchTerm);
   }
   
-  query += ` ORDER BY id`;
+  sql += ` ORDER BY id`;
   
-  return getAll(query, params);
+  return query<User>(sql).all(...params);
 }
 
 /**
  * 获取所有用户
  */
 export function getAllUsers(): User[] {
-
-  return getAll(`
+  return query<User>(`
     SELECT id, username, name, role, email, avatar, created_at, updated_at 
     FROM users
     ORDER BY id
-  `);
+  `).all();
 }
 
 /**
  * 根据ID获取用户
  */
 export function getUserById(id: number): User | null {
-  return getOne(`
+  return query<User>(`
     SELECT id, username, name, role, email, avatar, created_at, updated_at 
     FROM users 
     WHERE id = ?
-  `, [id]);
+  `).get(id);
 }
 
 /**
  * 根据用户名获取用户
  */
 export function getUserByUsername(username: string): User | null {
-  return getOne(`
+  return query<User>(`
     SELECT id, username, name, role, email, avatar, created_at, updated_at 
     FROM users 
     WHERE username = ?
-  `, [username]);
+  `).get(username);
 }
 
 /**
  * 验证用户登录
  */
-export function validateUser(username: string, password: string): User | null {
-  // 查询用户
-  const user = getOne(`
+export async function validateUser(username: string, password: string): Promise<User | null> {
+  // 查询用户（包含密码字段）
+  const userWithPassword = query<User & { password: string }>(`
     SELECT id, username, password, name, role, email, avatar, created_at, updated_at 
     FROM users 
     WHERE username = ?
-  `, [username]);
+  `).get(username);
   
-  if (!user) {
+  if (!userWithPassword) {
     return null;
   }
   
-  // 检查密码是否匹配 (这里应该使用哈希对比，但为简单起见直接比较)
-  // 提示：在实际应用中，永远不要存储明文密码和这样比较
-  if (user.password === password) {
-    // 返回用户信息，不包含密码
-    const { password: _, ...userInfo } = user;
-    return userInfo as User;
+  // 验证密码
+  const isValid = await verifyPassword(password, userWithPassword.password);
+  if (!isValid) {
+    return null;
+  }
+
+  // 检查是否需要更新密码哈希（迁移策略）
+  if (needsRehash(userWithPassword.password)) {
+    await updatePasswordHash(userWithPassword.id, password);
   }
   
-  return null;
+  // 返回用户信息，不包含密码
+  const { password: _, ...userInfo } = userWithPassword;
+  return userInfo;
+}
+
+/**
+ * 检查密码是否需要重新哈希
+ */
+function needsRehash(hashedPassword: string): boolean {
+  // Argon2id 的哈希字符串格式以 $argon2id$ 开头
+  return !hashedPassword.startsWith('$argon2id$');
+}
+
+/**
+ * 更新用户密码哈希
+ */
+async function updatePasswordHash(userId: number, plainPassword: string): Promise<void> {
+  const hashedPassword = await hashPassword(plainPassword);
+  
+  getDB().run(`
+    UPDATE users 
+    SET password = ?, 
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `, [hashedPassword, userId]);
 }
 
 /**
  * 创建用户
  */
-export function createUser(params: CreateUserParams): number {
+export async function createUser(params: CreateUserParams): Promise<number> {
   const { username, password, name, role, email, avatar } = params;
   
-  db.run(`
+  // 验证密码强度
+  const { isValid, message } = validatePasswordStrength(password);
+  if (!isValid) {
+    throw new ValidationError(message);
+  }
+  
+  // 检查用户名是否已存在
+  const existingUser = getUserByUsername(username);
+  if (existingUser) {
+    throw new ValidationError('用户名已存在');
+  }
+  
+  // 对密码进行哈希处理
+  const hashedPassword = await hashPassword(password);
+  
+  getDB().run(`
     INSERT INTO users (username, password, name, role, email, avatar)
     VALUES (?, ?, ?, ?, ?, ?)
-  `, [username, password, name, role, email || null, avatar || null]);
+  `, [username, hashedPassword, name, role, email || null, avatar || null]);
   
-  return db.query("SELECT last_insert_rowid() as id").get().id;
+  return getDB().query("SELECT last_insert_rowid() as id").get().id;
 }
 
 /**
  * 更新用户
  */
-export function updateUser(id: number, params: UpdateUserParams): boolean {
+export async function updateUser(id: number, params: UpdateUserParams): Promise<boolean> {
   const fields: string[] = [];
   const values: any[] = [];
   
@@ -181,8 +224,16 @@ export function updateUser(id: number, params: UpdateUserParams): boolean {
   }
   
   if (params.password) {
+    // 验证新密码强度
+    const { isValid, message } = validatePasswordStrength(params.password);
+    if (!isValid) {
+      throw new ValidationError(message);
+    }
+    
+    // 对新密码进行哈希处理
+    const hashedPassword = await hashPassword(params.password);
     fields.push("password = ?");
-    values.push(params.password);
+    values.push(hashedPassword);
   }
   
   // 更新时间
@@ -192,9 +243,15 @@ export function updateUser(id: number, params: UpdateUserParams): boolean {
     return false;
   }
   
+  // 检查用户是否存在
+  const user = getUserById(id);
+  if (!user) {
+    throw new NotFoundError('用户');
+  }
+  
   values.push(id);
   
-  db.run(`
+  getDB().run(`
     UPDATE users 
     SET ${fields.join(", ")} 
     WHERE id = ?
@@ -207,6 +264,6 @@ export function updateUser(id: number, params: UpdateUserParams): boolean {
  * 删除用户
  */
 export function deleteUser(id: number): boolean {
-  db.run("DELETE FROM users WHERE id = ?", [id]);
+  getDB().run("DELETE FROM users WHERE id = ?", [id]);
   return true;
 } 
