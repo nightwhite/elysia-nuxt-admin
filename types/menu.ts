@@ -2,11 +2,12 @@ export interface Menu {
   id?: number;
   parent_id?: number | null;
   title: string;
-  path: string;
+  path?: string | null;
   icon?: string | null;
   sort_order?: number;
   created_at?: string;
   updated_at?: string;
+  children?: Menu[];
 }
 
 export interface MenuTreeItem extends Menu {
@@ -17,8 +18,8 @@ export interface MenuTreeItem extends Menu {
 export interface CreateMenuParams {
   parent_id?: number | null;
   title: string;
-  path: string;
-  icon?: string | null;
+  path?: string;
+  icon?: string;
   sort_order?: number;
 }
 
@@ -26,7 +27,7 @@ export interface CreateMenuParams {
 export interface UpdateMenuParams {
   parent_id?: number | null;
   title?: string;
-  path?: string;
-  icon?: string | null;
+  path?: string | null;
+  icon?: string;
   sort_order?: number;
-} 
+}

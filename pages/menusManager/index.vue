@@ -130,15 +130,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '~/com
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '~/components/ui/sheet'
 import { AlertTriangle, Save, Loader2, Trash, PlusIcon } from 'lucide-vue-next'
 import type { Menu } from '~/types/menu'
+import { useMenuApi } from '~/composables/useMenuApi'
 
 // 导入拆分的组件
 import MenuList from '~/components/menuManager/MenuList.vue'
 import MenuTree from '~/components/menuManager/MenuTree.vue'
 import MenuForm from '~/components/menuManager/MenuForm.vue'
 
-interface MenuTreeItem extends Menu {
-  children: MenuTreeItem[];
-}
+// 使用统一的类型定义
+import type { MenuTreeItem } from '~/types/menu'
 
 const menus = ref<Menu[]>([])
 const menuTree = ref<MenuTreeItem[]>([])
@@ -164,19 +164,16 @@ const deleteError = ref<string | null>(null)
 const fetchMenus = async () => {
   loading.value = true
   error.value = null
-  
+
   try {
+    const menuApi = useMenuApi()
     const [menuResponse, treeResponse] = await Promise.all([
-      fetch('/api/menus'),
-      fetch('/api/menus/tree')
+      menuApi.getMenus(),
+      menuApi.getMenuTree()
     ])
-    
-    if (!menuResponse.ok || !treeResponse.ok) {
-      throw new Error(`HTTP 错误: ${menuResponse.status || treeResponse.status}`)
-    }
-    
-    menus.value = await menuResponse.json()
-    menuTree.value = await treeResponse.json()
+
+    menus.value = menuResponse
+    menuTree.value = treeResponse as MenuTreeItem[]
   } catch (e: any) {
     error.value = e.message || '获取菜单数据失败'
   } finally {
@@ -212,31 +209,36 @@ const openMenuModal = (menu?: Menu) => {
 const saveMenu = async () => {
   saving.value = true
   modalError.value = null
-  
+
   try {
-    const url = currentMenu.value.id 
-      ? `/api/menus/${currentMenu.value.id}` 
-      : '/api/menus'
-    
-    const method = currentMenu.value.id ? 'PUT' : 'POST'
-    
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(currentMenu.value)
-    })
-    
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || `HTTP 错误: ${response.status}`)
+    const menuApi = useMenuApi()
+    const message = useMessage()
+
+    // 构建符合类型要求的数据对象
+    const menuData = {
+      parent_id: currentMenu.value.parent_id,
+      title: currentMenu.value.title || '',
+      path: currentMenu.value.path || '',
+      icon: currentMenu.value.icon || undefined,
+      sort_order: currentMenu.value.sort_order
     }
-    
+
+    if (currentMenu.value.id) {
+      // 更新菜单
+      await menuApi.updateMenu(currentMenu.value.id, menuData)
+      message.success('更新成功', `菜单 "${currentMenu.value.title}" 已更新`)
+    } else {
+      // 创建菜单
+      await menuApi.createMenu(menuData)
+      message.success('创建成功', `菜单 "${currentMenu.value.title}" 已创建`)
+    }
+
     isMenuModalOpen.value = false
     await fetchMenus()
   } catch (e: any) {
     modalError.value = e.message || '保存菜单失败'
+    const message = useMessage()
+    message.error('操作失败', e.message || '保存菜单失败')
   } finally {
     saving.value = false
   }
@@ -250,24 +252,26 @@ const confirmDeleteMenu = (menu: Menu) => {
 
 const deleteMenu = async () => {
   if (!menuToDelete.value) return
-  
+
   deleting.value = true
   deleteError.value = null
-  
+
   try {
-    const response = await fetch(`/api/menus/${menuToDelete.value.id}`, {
-      method: 'DELETE'
-    })
-    
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || `HTTP 错误: ${response.status}`)
+    const menuApi = useMenuApi()
+    const message = useMessage()
+
+    if (menuToDelete.value?.id) {
+      const menuTitle = menuToDelete.value.title
+      await menuApi.deleteMenu(menuToDelete.value.id)
+      message.success('删除成功', `菜单 "${menuTitle}" 已删除`)
     }
-    
+
     isDeleteModalOpen.value = false
     await fetchMenus()
   } catch (e: any) {
     deleteError.value = e.message || '删除菜单失败'
+    const message = useMessage()
+    message.error('删除失败', e.message || '删除菜单失败')
   } finally {
     deleting.value = false
   }

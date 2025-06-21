@@ -22,11 +22,7 @@
 
 <script setup lang="ts">
 import { Folder as FolderIcon, File as FileIcon } from 'lucide-vue-next'
-import type { Menu } from '~/types/menu'
-
-interface MenuTreeItem extends Menu {
-  children: MenuTreeItem[];
-}
+import type { MenuTreeItem } from '~/types/menu'
 
 defineProps<{
   menuTree: MenuTreeItem[]

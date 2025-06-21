@@ -103,13 +103,14 @@ export async function initDB() {
     db.run(`INSERT INTO roles (name, description) VALUES ('user', '普通用户')`);
 
     // 插入默认菜单
-    db.run(`INSERT INTO menus (id, parent_id, title, path, icon, sort_order) VALUES 
+    db.run(`INSERT INTO menus (id, parent_id, title, path, icon, sort_order) VALUES
       (1, NULL, '仪表盘', '/dashboard', 'LayoutDashboard', 0),
       (2, NULL, '用户管理', '/userManager', 'Users', 1),
       (3, NULL, '系统设置', '/settings', 'Settings', 9),
       (4, NULL, '菜单管理', '/menusManager', 'Menu', 3),
       (5, NULL, '测试', '', 'CircleDashed', 8),
-      (6, 5, '测试', '/test', 'Bot', 0)
+      (6, 5, 'API 测试', '/test', 'Bot', 0),
+      (7, 5, 'Toast 测试', '/test/toast', 'MessageSquare', 1)
     `);
   }
 

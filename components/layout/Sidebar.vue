@@ -62,6 +62,7 @@ import { ref, onMounted } from 'vue'
 import * as LucideIcons from 'lucide-vue-next'
 import { ChevronDown } from 'lucide-vue-next'
 import { useRoute } from 'vue-router'
+import { useMenuApi } from '~/composables/useMenuApi'
 
 interface MenuItem {
   id?: number
@@ -132,14 +133,10 @@ const error = ref<string | null>(null)
 const fetchMenus = async () => {
   loading.value = true
   error.value = null
-  
+
   try {
-    const response = await fetch('/api/menus/tree')
-    if (!response.ok) {
-      throw new Error(`HTTP 错误: ${response.status}`)
-    }
-    
-    const data = await response.json()
+    const menuApi = useMenuApi()
+    const data = await menuApi.getMenuTree()
     
     // 转换菜单数据结构
     const transformMenuItem = (item: any): MenuItem => ({

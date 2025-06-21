@@ -47,6 +47,24 @@ export interface UserFilterParams {
   role?: string;
 }
 
+// 分页参数
+export interface PaginationParams {
+  page?: number;
+  pageSize?: number;
+}
+
+// 分页查询参数
+export interface UserListParams extends UserFilterParams, PaginationParams {}
+
+// 分页响应
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 /**
  * 获取筛选后的用户
  */
@@ -86,10 +104,63 @@ export function getFilteredUsers(filters: UserFilterParams): User[] {
  */
 export function getAllUsers(): User[] {
   return query<User>(`
-    SELECT id, username, name, role, email, avatar, created_at, updated_at 
+    SELECT id, username, name, role, email, avatar, created_at, updated_at
     FROM users
     ORDER BY id
   `).all();
+}
+
+/**
+ * 分页获取用户列表
+ */
+export function getUsersPaginated(params: UserListParams): PaginatedResponse<User> {
+  const page = params.page || 1;
+  const pageSize = params.pageSize || 10;
+  const offset = (page - 1) * pageSize;
+
+  // 构建基础查询条件
+  let whereClause = 'WHERE 1=1';
+  const queryParams: any[] = [];
+
+  // 按角色筛选
+  if (params.role && params.role !== 'all') {
+    whereClause += ` AND role = ?`;
+    queryParams.push(params.role);
+  }
+
+  // 按关键词搜索
+  if (params.search && params.search.trim()) {
+    whereClause += ` AND (
+      username LIKE ? OR
+      name LIKE ? OR
+      email LIKE ?
+    )`;
+    const searchTerm = `%${params.search.trim()}%`;
+    queryParams.push(searchTerm, searchTerm, searchTerm);
+  }
+
+  // 获取总数
+  const countSql = `SELECT COUNT(*) as total FROM users ${whereClause}`;
+  const totalResult = query<{ total: number }>(countSql).get(...queryParams);
+  const total = totalResult?.total || 0;
+
+  // 获取分页数据
+  const dataSql = `
+    SELECT id, username, name, role, email, avatar, created_at, updated_at
+    FROM users
+    ${whereClause}
+    ORDER BY id
+    LIMIT ? OFFSET ?
+  `;
+  const data = query<User>(dataSql).all(...queryParams, pageSize, offset);
+
+  return {
+    data,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize)
+  };
 }
 
 /**

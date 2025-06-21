@@ -1,18 +1,23 @@
 import { Elysia, t } from "elysia"
 import { getDB } from "../db"
+import { requireAdmin } from "../utils/auth"
+
 
 /**
  * 管理接口路由模块
  */
 export const admin = new Elysia()
-  /**
-   * 获取管理系统信息
-   */
-  .get("/admin/info", () => ({
-    name: "Admin Template",
-    version: "1.0.0",
-    env: process.env.NODE_ENV || "development"
-  }), {
+  .group("/admin", (app) =>
+    app
+      .use(requireAdmin)
+      /**
+       * 获取管理系统信息
+       */
+      .get("/info", () => ({
+        name: "Admin Template",
+        version: "1.0.0",
+        env: process.env.NODE_ENV || "development"
+      }), {
     detail: {
       tags: ["管理接口"],
       summary: "获取管理系统信息",
@@ -36,25 +41,25 @@ export const admin = new Elysia()
       }
     }
   })
-  /**
-   * 获取所有用户（调试接口）
-   */
-  .get("/admin/debug/users", () => {
-    // 调试接口，获取所有用户（包含密码，仅用于调试）
-    const db = getDB();
-    const users = db.query("SELECT * FROM users").all();
-    return users;
-  }, {
+      /**
+       * 获取所有用户（调试接口）
+       */
+      .get("/debug/users", () => {
+        // 调试接口，获取所有用户（包含密码，仅用于调试）
+        const db = getDB();
+        const users = db.query("SELECT * FROM users").all();
+        return users;
+      }, {
     detail: {
       tags: ["管理接口"],
       summary: "调试: 获取所有用户",
       description: "返回数据库中的所有用户信息（包括密码，仅用于调试）",
     }
   })
-  /**
-   * 获取仪表盘数据
-   */
-  .get("/admin/dashboard", () => {
+      /**
+       * 获取仪表盘数据
+       */
+      .get("/dashboard", () => {
     // 获取各种统计数据
     const db = getDB();
     const userCount = db.query("SELECT COUNT(*) as count FROM users").get().count;
@@ -119,10 +124,10 @@ export const admin = new Elysia()
       }
     }
   })
-  /**
-   * 获取数据库表
-   */
-  .get("/admin/db/tables", () => {
+      /**
+       * 获取数据库表
+       */
+      .get("/db/tables", () => {
     // 获取数据库中的所有表
     const db = getDB();
     const tables = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all();
@@ -152,10 +157,10 @@ export const admin = new Elysia()
       }
     }
   })
-  /**
-   * 获取表详情
-   */
-  .get("/admin/db/table/:name", ({ params }) => {
+      /**
+       * 获取表详情
+       */
+      .get("/db/table/:name", ({ params }) => {
     // 获取表结构
     const db = getDB();
     const schema = db.query(`PRAGMA table_info(${params.name})`).all();
@@ -211,10 +216,10 @@ export const admin = new Elysia()
       }
     }
   })
-  /**
-   * 执行SQL查询
-   */
-  .post("/admin/db/query", ({ body }) => {
+      /**
+       * 执行SQL查询
+       */
+      .post("/db/query", ({ body }) => {
     try {
       const db = getDB();
       const result = db.query(body.sql).all();
@@ -268,6 +273,7 @@ export const admin = new Elysia()
         }
       }
     }
-  });
+  })
+  );
 
 export default admin; 

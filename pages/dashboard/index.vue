@@ -87,6 +87,7 @@
 import { ref, onMounted } from 'vue'
 import { Button } from '~/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '~/components/ui/card'
+import { useAdminApi } from '~/composables/useAdminApi'
 
 // 定义数据结构
 interface DashboardData {
@@ -119,14 +120,10 @@ const error = ref<string | null>(null)
 const fetchDashboardData = async () => {
   loading.value = true
   error.value = null
-  
+
   try {
-    const response = await fetch('/api/admin/dashboard')
-    if (!response.ok) {
-      throw new Error(`HTTP 错误: ${response.status}`)
-    }
-    
-    dashboardData.value = await response.json()
+    const adminApi = useAdminApi()
+    dashboardData.value = await adminApi.getDashboardData()
   } catch (e: any) {
     error.value = e.message || '获取数据失败'
   } finally {

@@ -47,9 +47,34 @@ const logout = () => {
   user.value = null
   token.value = null
   isAuthenticated.value = false
-  
+
   localStorage.removeItem('user')
   localStorage.removeItem('token')
+}
+
+// 更新用户信息函数
+const updateUser = async () => {
+  if (!user.value?.id || !token.value) {
+    throw new Error('用户未登录')
+  }
+
+  try {
+    // 直接使用 $fetch 调用 API，避免循环依赖
+    const response = await $fetch<User>(`/api/users/${user.value.id}`, {
+      headers: {
+        'Authorization': `Bearer ${token.value}`
+      }
+    })
+
+    // 更新本地用户信息
+    user.value = response
+    localStorage.setItem('user', JSON.stringify(response))
+
+    return response
+  } catch (error) {
+    console.error('更新用户信息失败:', error)
+    throw error
+  }
 }
 
 // 导出钩子函数
@@ -63,6 +88,7 @@ export const useAuth = () => {
     token: readonly(token),
     login,
     logout,
+    updateUser,
     initAuth
   }
 } 

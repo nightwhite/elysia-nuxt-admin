@@ -12,8 +12,15 @@
       </div>
     </template>
   </ClientOnly>
+
+  <!-- 全局 Toast 组件 -->
+  <ClientOnly>
+    <Toast />
+  </ClientOnly>
 </template>
 
 <script setup>
+import { Toast } from '~/components/ui/toast'
+
 // 无需在这里定义全局中间件，会在 nuxt.config.ts 中配置
 </script>

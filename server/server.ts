@@ -7,9 +7,9 @@ import { Elysia } from "elysia"
 import { initDB } from "./db"
 
 // 导入路由文件
-import admin from "./routes/admin"
-import users from "./routes/users"
-import menus from "./routes/menus"
+import { admin } from "./routes/admin"
+import { users } from "./routes/users"
+import { menus } from "./routes/menus"
 
 // 初始化数据库
 initDB()

@@ -1,7 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { config } from "../config";
 import { AppError } from "./errors";
-import type { AuthUser } from "../middleware/auth";
+import type { AuthUser } from "~/types/global";
 
 // 密钥（在生产环境中应该从环境变量获取）
 const SECRET = new TextEncoder().encode(config.JWT_SECRET);
