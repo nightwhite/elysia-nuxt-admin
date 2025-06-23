@@ -86,6 +86,52 @@ export async function initDB() {
     )
   `);
 
+  // S3配置表
+  db.run(`
+    CREATE TABLE IF NOT EXISTS s3_config (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      enabled BOOLEAN DEFAULT true,
+      endpoint_url TEXT,
+      aws_access_key_id TEXT NOT NULL,
+      aws_secret_access_key TEXT NOT NULL,
+      region_name TEXT NOT NULL,
+      bucket_name TEXT NOT NULL,
+      folder TEXT,
+      bucket_url TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // 检查s3_config表是否需要添加列（用于数据库迁移）
+  try {
+    const tableInfo = db.query("PRAGMA table_info(s3_config)").all();
+    const columnNames = tableInfo.map((col: any) => col.name);
+
+    if (!columnNames.includes('aws_access_key_id')) {
+      // 如果表存在但缺少新的列结构，删除并重新创建
+      db.run('DROP TABLE IF EXISTS s3_config');
+      db.run(`
+        CREATE TABLE s3_config (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          enabled BOOLEAN DEFAULT true,
+          endpoint_url TEXT,
+          aws_access_key_id TEXT NOT NULL,
+          aws_secret_access_key TEXT NOT NULL,
+          region_name TEXT NOT NULL,
+          bucket_name TEXT NOT NULL,
+          folder TEXT,
+          bucket_url TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      console.log("S3配置表已重新创建");
+    }
+  } catch (error) {
+    console.log("S3配置表检查完成");
+  }
+
   // 检查是否需要插入初始数据
   const adminUser = db.query('SELECT id FROM users WHERE username = ?').get('admin');
   
@@ -106,11 +152,12 @@ export async function initDB() {
     db.run(`INSERT INTO menus (id, parent_id, title, path, icon, sort_order) VALUES
       (1, NULL, '仪表盘', '/dashboard', 'LayoutDashboard', 0),
       (2, NULL, '用户管理', '/userManager', 'Users', 1),
-      (3, NULL, '系统设置', '/settings', 'Settings', 9),
+      (3, NULL, '文件管理', '/files', 'FolderOpen', 2),
       (4, NULL, '菜单管理', '/menusManager', 'Menu', 3),
       (5, NULL, '测试', '', 'CircleDashed', 8),
       (6, 5, 'API 测试', '/test', 'Bot', 0),
-      (7, 5, 'Toast 测试', '/test/toast', 'MessageSquare', 1)
+      (7, 5, 'Toast 测试', '/test/toast', 'MessageSquare', 1),
+      (8, NULL, '系统设置', '/settings', 'Settings', 9)
     `);
   }
 

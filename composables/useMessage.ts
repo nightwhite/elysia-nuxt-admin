@@ -48,6 +48,25 @@ export const useMessage = () => {
       toast.info(title, description, duration)
     },
 
+    // 通用消息显示函数（根据类型自动选择）
+    showMessage: (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', duration?: number) => {
+      switch (type) {
+        case 'success':
+          toast.success(message, undefined, duration)
+          break
+        case 'error':
+          toast.error(message, undefined, duration)
+          break
+        case 'warning':
+          toast.warning(message, undefined, duration)
+          break
+        case 'info':
+        default:
+          toast.info(message, undefined, duration)
+          break
+      }
+    },
+
     // 通用消息
     show: toast.show,
 

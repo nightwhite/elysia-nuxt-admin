@@ -10,6 +10,8 @@ import { initDB } from "./db"
 import { admin } from "./routes/admin"
 import { users } from "./routes/users"
 import { menus } from "./routes/menus"
+import { s3 } from "./routes/s3"
+import { s3Files } from "./routes/s3-files"
 
 // 初始化数据库
 initDB()
@@ -48,6 +50,14 @@ export const app = new Elysia()
         {
           name: "菜单接口",
           description: "菜单管理接口",
+        },
+        {
+          name: "S3配置",
+          description: "S3存储配置接口",
+        },
+        {
+          name: "S3文件管理",
+          description: "S3文件管理接口",
         },
       ],
       components: {
@@ -117,6 +127,8 @@ export const app = new Elysia()
   .use(admin)
   .use(users)
   .use(menus)
+  .use(s3)
+  .use(s3Files)
 
 console.log("Elysia server routes loaded")
 

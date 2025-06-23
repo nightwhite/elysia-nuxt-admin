@@ -27,11 +27,14 @@ class ApiError extends Error {
   }
 }
 
+// 防止重复重定向的标志
+let isRedirecting = false
+
 /**
  * 封装的 API 请求方法
  */
 export const useApi = () => {
-  const { token } = useAuth()
+  const { token, logout } = useAuth()
 
   /**
    * 通用 API 请求方法
@@ -48,8 +51,11 @@ export const useApi = () => {
     } = options
 
     // 构建请求头
-    const requestHeaders: Record<string, string> = {
-      'Content-Type': 'application/json',
+    const requestHeaders: Record<string, string> = {}
+
+    // 只有在不是FormData时才设置Content-Type
+    if (!(fetchOptions.body instanceof FormData)) {
+      requestHeaders['Content-Type'] = 'application/json'
     }
 
     // 合并传入的 headers
@@ -89,13 +95,23 @@ export const useApi = () => {
           // 如果无法解析错误响应，使用默认消息
         }
 
-        if (autoRedirect) {
-          await navigateTo('/login')
-          // 对于需要重定向的情况，不要显示重定向消息，而是显示原始错误
-          throw new ApiError(errorMessage, 401, response)
-        } else {
-          throw new ApiError(errorMessage, 401, response)
+        // 清理本地认证状态
+        logout()
+
+        if (autoRedirect && !isRedirecting) {
+          isRedirecting = true
+
+          // 延迟重定向，避免并发问题
+          setTimeout(async () => {
+            try {
+              await navigateTo('/login')
+            } finally {
+              isRedirecting = false
+            }
+          }, 100)
         }
+
+        throw new ApiError(errorMessage, 401, response)
       }
 
       // 处理其他错误状态
@@ -147,10 +163,22 @@ export const useApi = () => {
     data?: any,
     options?: Omit<ApiOptions, 'method' | 'body'>
   ) => {
+    let body: any = undefined
+
+    if (data) {
+      // 如果是FormData，直接使用
+      if (data instanceof FormData) {
+        body = data
+      } else {
+        // 否则转换为JSON字符串
+        body = JSON.stringify(data)
+      }
+    }
+
     return request<T>(url, {
       ...options,
       method: 'POST',
-      body: data ? JSON.stringify(data) : undefined,
+      body,
     })
   }
 
