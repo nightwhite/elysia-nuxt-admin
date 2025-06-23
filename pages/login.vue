@@ -50,9 +50,12 @@
           </Button>
         </form>
       </CardContent>
-      <CardFooter>
+      <CardFooter class="flex flex-col space-y-2">
         <p class="text-sm text-muted-foreground">
           默认账号: admin 密码: Admin@123
+        </p>
+        <p class="text-xs text-muted-foreground text-center">
+          {{ systemCopyright }}
         </p>
       </CardFooter>
     </Card>
@@ -77,6 +80,7 @@ definePageMeta({
 const router = useRouter()
 const { login, isAuthenticated } = useAuth()
 const message = useMessage()
+const { systemCopyright } = useSystemConfig()
 const username = ref('')
 const password = ref('')
 const loading = ref(false)

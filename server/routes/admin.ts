@@ -1,6 +1,7 @@
 import { Elysia, t } from "elysia"
 import { getDB } from "../db"
 import { requireAdmin } from "../utils/auth"
+import { getSystemInfo } from "../utils/systemConfig"
 
 
 /**
@@ -13,11 +14,14 @@ export const admin = new Elysia()
       /**
        * 获取管理系统信息
        */
-      .get("/info", () => ({
-        name: "Admin Template",
-        version: "1.0.0",
-        env: process.env.NODE_ENV || "development"
-      }), {
+      .get("/info", () => {
+        const systemInfo = getSystemInfo()
+        return {
+          name: systemInfo.name,
+          version: systemInfo.version,
+          env: process.env.NODE_ENV || "development"
+        }
+      }, {
     detail: {
       tags: ["管理接口"],
       summary: "获取管理系统信息",

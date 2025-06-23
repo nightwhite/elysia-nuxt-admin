@@ -5,47 +5,90 @@
     </div>
 
     <div class="grid gap-6">
-      <!-- 基本设置 -->
+      <!-- 系统配置 -->
       <Card>
         <CardHeader>
-          <CardTitle>基本设置</CardTitle>
+          <CardTitle>系统配置</CardTitle>
           <CardDescription>
-            系统的基本配置项
+            配置系统的基本信息，包括名称、Logo等
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div class="space-y-4">
-            <div>
-              <Label>系统名称</Label>
-              <Input placeholder="输入系统名称" />
+          <form @submit.prevent="saveSystemConfig" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label for="system_name">系统名称 *</Label>
+                <Input
+                  id="system_name"
+                  v-model="systemForm.name"
+                  placeholder="输入系统名称"
+                  required
+                />
+              </div>
+              <div>
+                <Label for="system_version">系统版本</Label>
+                <Input
+                  id="system_version"
+                  v-model="systemForm.version"
+                  placeholder="输入系统版本"
+                />
+              </div>
+              <div class="md:col-span-2">
+                <Label for="system_description">系统描述</Label>
+                <Input
+                  id="system_description"
+                  v-model="systemForm.description"
+                  placeholder="输入系统描述"
+                />
+              </div>
+              <div>
+                <Label for="system_logo">Logo文字</Label>
+                <Input
+                  id="system_logo"
+                  v-model="systemForm.logo"
+                  placeholder="输入Logo文字（如：A）"
+                  maxlength="3"
+                />
+                <p class="text-sm text-gray-500 mt-1">
+                  用于在没有Logo图片时显示的文字，建议1-3个字符
+                </p>
+              </div>
+              <div>
+                <Label for="system_logo_url">Logo图片URL</Label>
+                <Input
+                  id="system_logo_url"
+                  v-model="systemForm.logoUrl"
+                  placeholder="输入Logo图片URL（可选）"
+                />
+              </div>
+              <div class="md:col-span-2">
+                <Label for="system_copyright">版权信息</Label>
+                <Input
+                  id="system_copyright"
+                  v-model="systemForm.copyright"
+                  placeholder="输入版权信息"
+                />
+              </div>
             </div>
-            <div>
-              <Label>系统描述</Label>
-              <Input placeholder="输入系统描述" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      <!-- 安全设置 -->
-      <Card>
-        <CardHeader>
-          <CardTitle>安全设置</CardTitle>
-          <CardDescription>
-            系统安全相关的配置
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div class="space-y-4">
-            <div class="flex items-center space-x-2">
-              <Checkbox id="terms" />
-              <Label for="terms">启用双因素认证</Label>
+            <div class="flex gap-2 pt-4">
+              <Button
+                type="submit"
+                :disabled="systemLoading"
+              >
+                <span v-if="systemLoading">保存中...</span>
+                <span v-else>保存配置</span>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                @click="confirmResetSystemConfig"
+                :disabled="systemLoading"
+              >
+                重置为默认值
+              </Button>
             </div>
-            <div class="flex items-center space-x-2">
-              <Checkbox id="terms2" />
-              <Label for="terms2">启用登录验证码</Label>
-            </div>
-          </div>
+          </form>
         </CardContent>
       </Card>
 
@@ -167,33 +210,32 @@
           </form>
         </CardContent>
       </Card>
-
-      <!-- 其他设置 -->
-      <Card>
-        <CardHeader>
-          <CardTitle>其他设置</CardTitle>
-          <CardDescription>
-            其他系统配置项
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div class="space-y-4">
-            <div>
-              <Label>时区设置</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="选择时区" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="asia-shanghai">Asia/Shanghai</SelectItem>
-                  <SelectItem value="utc">UTC</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
+
+    <!-- 重置系统配置确认对话框 -->
+    <Sheet v-model:open="isResetDialogOpen">
+      <SheetContent side="bottom" class="sm:max-w-md sm:mx-auto">
+        <SheetHeader>
+          <SheetTitle class="flex items-center gap-2">
+            <RotateCcw class="h-5 w-5 text-destructive" />
+            确认重置系统配置
+          </SheetTitle>
+          <SheetDescription>
+            您确定要将系统配置重置为默认值吗？此操作将覆盖当前的系统名称、Logo、版本等所有配置信息，且无法撤销。
+          </SheetDescription>
+        </SheetHeader>
+        <SheetFooter class="flex-col sm:flex-row gap-2 mt-6">
+          <Button variant="outline" @click="isResetDialogOpen = false" class="flex-1">
+            取消
+          </Button>
+          <Button @click="handleResetSystemConfig" variant="destructive" class="flex-1" :disabled="systemLoading">
+            <RotateCcw class="h-4 w-4 mr-2" />
+            <span v-if="systemLoading">重置中...</span>
+            <span v-else>确认重置</span>
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   </div>
 </template>
 
@@ -202,11 +244,30 @@ import { ref, onMounted, computed } from 'vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
-import { Checkbox } from '~/components/ui/checkbox'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
+
 import { Button } from '~/components/ui/button'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '~/components/ui/sheet'
+import { RotateCcw } from 'lucide-vue-next'
 import { useS3Api, type S3ConfigForm } from '~/composables/useS3Api'
+import { useSystemConfigApi, type SystemInfo } from '~/composables/useSystemConfigApi'
 import { useMessage } from '~/composables/useMessage'
+
+// 系统配置表单数据
+const systemForm = ref<SystemInfo>({
+  name: '',
+  logo: '',
+  logoUrl: '',
+  description: '',
+  version: '',
+  copyright: ''
+})
 
 // S3配置表单数据
 const s3Form = ref<S3ConfigForm>({
@@ -221,10 +282,13 @@ const s3Form = ref<S3ConfigForm>({
 })
 
 // 加载状态
+const systemLoading = ref(false)
 const s3Loading = ref(false)
 const testLoading = ref(false)
+const isResetDialogOpen = ref(false)
 
 // API和消息服务
+const systemConfigApi = useSystemConfigApi()
 const s3Api = useS3Api()
 const { showMessage } = useMessage()
 
@@ -235,6 +299,84 @@ const isS3FormValid = computed(() => {
          s3Form.value.bucket_name &&
          s3Form.value.region_name
 })
+
+// 加载系统配置
+const loadSystemConfig = async () => {
+  try {
+    const response = await systemConfigApi.getSystemInfo()
+
+    if (response.success && response.data) {
+      systemForm.value = {
+        name: response.data.name,
+        logo: response.data.logo,
+        logoUrl: response.data.logoUrl,
+        description: response.data.description,
+        version: response.data.version,
+        copyright: response.data.copyright
+      }
+    }
+  } catch (error: any) {
+    showMessage('加载系统配置失败: ' + error.message, 'error')
+  }
+}
+
+// 保存系统配置
+const saveSystemConfig = async () => {
+  if (!systemForm.value.name.trim()) {
+    showMessage('系统名称不能为空', 'error')
+    return
+  }
+
+  systemLoading.value = true
+  try {
+    const configs = [
+      { key: 'system_name', value: systemForm.value.name },
+      { key: 'system_logo', value: systemForm.value.logo },
+      { key: 'system_logo_url', value: systemForm.value.logoUrl },
+      { key: 'system_description', value: systemForm.value.description },
+      { key: 'system_version', value: systemForm.value.version },
+      { key: 'system_copyright', value: systemForm.value.copyright }
+    ]
+
+    const response = await systemConfigApi.updateConfigs({ configs })
+    if (response.success) {
+      showMessage('系统配置保存成功', 'success')
+      // 重新加载配置
+      await loadSystemConfig()
+    } else {
+      showMessage('保存失败', 'error')
+    }
+  } catch (error: any) {
+    showMessage('保存系统配置失败: ' + error.message, 'error')
+  } finally {
+    systemLoading.value = false
+  }
+}
+
+// 确认重置系统配置
+const confirmResetSystemConfig = () => {
+  isResetDialogOpen.value = true
+}
+
+// 处理重置系统配置
+const handleResetSystemConfig = async () => {
+  systemLoading.value = true
+  try {
+    const response = await systemConfigApi.resetToDefaults()
+    if (response.success) {
+      isResetDialogOpen.value = false
+      showMessage('系统配置已重置为默认值', 'success')
+      // 重新加载配置
+      await loadSystemConfig()
+    } else {
+      showMessage('重置失败', 'error')
+    }
+  } catch (error: any) {
+    showMessage('重置系统配置失败: ' + error.message, 'error')
+  } finally {
+    systemLoading.value = false
+  }
+}
 
 // 加载S3配置
 const loadS3Config = async () => {
@@ -310,6 +452,7 @@ const testS3Connection = async () => {
 
 // 组件挂载时加载配置
 onMounted(() => {
+  loadSystemConfig()
   loadS3Config()
 })
 

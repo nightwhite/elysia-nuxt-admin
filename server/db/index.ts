@@ -132,6 +132,19 @@ export async function initDB() {
     console.log("S3配置表检查完成");
   }
 
+  // 系统配置表
+  db.run(`
+    CREATE TABLE IF NOT EXISTS system_config (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      config_key TEXT UNIQUE NOT NULL,
+      config_value TEXT,
+      config_type TEXT DEFAULT 'string',
+      description TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // 检查是否需要插入初始数据
   const adminUser = db.query('SELECT id FROM users WHERE username = ?').get('admin');
   
@@ -158,6 +171,16 @@ export async function initDB() {
       (6, 5, 'API 测试', '/test', 'Bot', 0),
       (7, 5, 'Toast 测试', '/test/toast', 'MessageSquare', 1),
       (8, NULL, '系统设置', '/settings', 'Settings', 9)
+    `);
+
+    // 插入默认系统配置
+    db.run(`INSERT OR IGNORE INTO system_config (config_key, config_value, config_type, description) VALUES
+      ('system_name', 'Admin System', 'string', '系统名称'),
+      ('system_logo', 'A', 'string', '系统Logo文字'),
+      ('system_logo_url', '', 'string', '系统Logo图片URL'),
+      ('system_description', '现代化的后台管理系统', 'string', '系统描述'),
+      ('system_version', '1.0.0', 'string', '系统版本'),
+      ('system_copyright', '© 2024 Admin System. All rights reserved.', 'string', '版权信息')
     `);
   }
 

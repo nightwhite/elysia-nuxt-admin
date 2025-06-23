@@ -10,10 +10,15 @@
           </Button>
           <!-- 添加Logo和系统标题 -->
           <div class="hidden md:flex items-center gap-2">
-            <div class="h-8 w-8 rounded-md bg-primary/90 flex items-center justify-center text-primary-foreground font-bold">
-              A
+            <!-- 动态Logo -->
+            <div v-if="systemLogo.type === 'image'" class="h-8 w-8 rounded-md overflow-hidden">
+              <img :src="systemLogo.value" :alt="systemName" class="w-full h-full object-cover" />
             </div>
-            <h2 class="text-lg font-semibold hidden lg:block">Admin System</h2>
+            <div v-else class="h-8 w-8 rounded-md bg-primary/90 flex items-center justify-center text-primary-foreground font-bold">
+              {{ systemLogo.value }}
+            </div>
+            <!-- 动态系统名称 -->
+            <h2 class="text-lg font-semibold hidden lg:block">{{ systemName }}</h2>
           </div>
         </div>
         
@@ -105,8 +110,21 @@
       </div>
       
       <!-- 内容区域 -->
-      <div class="flex-1 overflow-auto p-4">
-        <slot />
+      <div class="flex-1 overflow-auto">
+        <div class="min-h-full flex flex-col">
+          <main class="flex-1 p-4">
+            <slot />
+          </main>
+
+          <!-- 页脚 -->
+          <footer class="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div class="px-4 py-3">
+              <div class="text-center text-sm text-muted-foreground">
+                {{ systemCopyright }}
+              </div>
+            </div>
+          </footer>
+        </div>
       </div>
     </div>
 
@@ -155,12 +173,14 @@ import { User, Settings, LogOut, ChevronDown, Menu } from 'lucide-vue-next'
 import { useAuth } from '~/composables/useAuth'
 import { useRouter } from 'vue-router'
 import { useMessage } from '~/composables/useMessage'
+import { useSystemConfig } from '~/composables/useSystemConfig'
 import Sidebar from '~/components/layout/Sidebar.vue'
 import { ref } from 'vue'
 
 const { user, logout } = useAuth()
 const router = useRouter()
 const message = useMessage()
+const { systemName, systemLogo, systemCopyright } = useSystemConfig()
 const isSidebarOpen = ref(false)
 const isLogoutDialogOpen = ref(false)
 
