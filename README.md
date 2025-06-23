@@ -1,6 +1,11 @@
-# Admin System Template
+# Elysia Nuxt Admin
 
 一个现代化的后台管理系统模板，基于 Nuxt 3 + Elysia + shadcn-vue 构建。
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Nuxt](https://img.shields.io/badge/Nuxt-3.x-00DC82.svg)](https://nuxt.com/)
+[![Elysia](https://img.shields.io/badge/Elysia-1.x-8B5CF6.svg)](https://elysiajs.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg)](https://www.typescriptlang.org/)
 
 ## 技术栈
 
@@ -14,12 +19,17 @@
 ## 特性
 
 - ✨ 现代化的用户界面
-- 🔐 内置用户认证系统
+- 🔐 内置用户认证系统 (JWT)
 - 📊 动态菜单管理
 - 👥 用户角色管理
 - 📱 响应式设计
 - 🚀 快速开发启动模板
 - 📝 Swagger API 文档
+- 📋 完整的表格功能 (排序、筛选、分页、批量操作)
+- ⚙️ 系统配置管理
+- 🌙 主题切换支持
+- 📁 文件上传 (S3 集成)
+- 🔧 TypeScript 全栈类型安全
 
 ## 数据库
 
@@ -185,10 +195,27 @@ admin-system-template/
 
 项目使用 Tailwind CSS 进行样式管理，可以通过修改 `tailwind.config.ts` 自定义主题。
 
-## 贡献
+## 🤝 贡献
 
 欢迎提交 Issue 和 Pull Request！
 
-## 许可证
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 打开 Pull Request
 
-[MIT](LICENSE)
+## 📄 许可证
+
+本项目基于 [MIT 许可证](LICENSE) 开源。
+
+## 🙏 致谢
+
+- [Nuxt.js](https://nuxt.com/) - 优秀的 Vue.js 框架
+- [Elysia.js](https://elysiajs.com/) - 快速的 Web 框架
+- [shadcn-vue](https://www.shadcn-vue.com/) - 精美的组件库
+- [Tailwind CSS](https://tailwindcss.com/) - 实用的 CSS 框架
+
+---
+
+如果这个项目对您有帮助，请给个 ⭐️ 支持一下！

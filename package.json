@@ -1,6 +1,23 @@
 {
-  "name": "nuxt-app",
-  "private": true,
+  "name": "elysia-nuxt-admin",
+  "version": "1.0.0",
+  "description": "A modern admin dashboard built with Nuxt 3, Elysia.js, and shadcn-vue",
+  "author": "nightwhite",
+  "license": "MIT",
+  "keywords": [
+    "nuxt",
+    "elysia",
+    "admin",
+    "dashboard",
+    "vue",
+    "typescript",
+    "shadcn-vue"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nightwhite/elysia-nuxt-admin.git"
+  },
+  "private": false,
   "type": "module",
   "scripts": {
     "build": "bun --bun nuxt build",
