@@ -1,11 +1,15 @@
-# Elysia Nuxt Admin
+# Elysia Nuxt Admin Template
 
-一个现代化的后台管理系统模板，基于 Nuxt 3 + Elysia + shadcn-vue 构建。
+> 🚀 一个现代化的后台管理系统模板，基于 Nuxt 3 + Elysia + shadcn-vue 构建
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Nuxt](https://img.shields.io/badge/Nuxt-3.x-00DC82.svg)](https://nuxt.com/)
 [![Elysia](https://img.shields.io/badge/Elysia-1.x-8B5CF6.svg)](https://elysiajs.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg)](https://www.typescriptlang.org/)
+
+## 🎯 使用此模板
+
+点击右上角的 **"Use this template"** 按钮，创建你的新项目！
 
 ## 技术栈
 
@@ -59,19 +63,22 @@ cp data/admin.db data/admin.db.backup
 
 ## Docker 部署
 
-项目提供了 Docker 支持，可以通过以下命令快速部署：
+Docker 环境下运行集成模式（前后端在同一服务中）：
 
 ```bash
 # 构建镜像
 docker build -t elysia-nuxt-admin .
 
 # 运行容器
-docker run -d -p 3000:3000 -p 3001:3001 --name admin-system elysia-nuxt-admin
+docker run -d -p 3000:3000 -v $(pwd)/data:/app/data --name admin-system elysia-nuxt-admin
 ```
 
-### Docker Compose
+访问地址：
 
-也可以使用 Docker Compose 进行部署：
+- 应用：<http://localhost:3000>
+- API：<http://localhost:3000/api>
+
+### Docker Compose
 
 ```bash
 # 启动服务
@@ -93,7 +100,30 @@ volumes:
   - ./data:/app/data  # 数据库文件持久化
 ```
 
-## 快速开始
+**注意**：Docker 容器只暴露 3000 端口，前后端集成运行，无需额外端口。
+
+## 🚀 快速开始
+
+### 🎯 使用模板创建新项目
+
+1. 点击仓库页面的 **"Use this template"** 按钮
+2. 创建你的新仓库
+3. 克隆并启动：
+
+```bash
+# 克隆你的新仓库
+git clone https://github.com/your-username/your-project-name.git
+cd your-project-name
+
+# 安装依赖
+bun install
+
+# 设置环境变量
+bun run setup
+
+# 启动开发服务器
+bun run dev
+```
 
 ### 前置要求
 
@@ -104,12 +134,13 @@ volumes:
 ```bash
 # 克隆项目
 git clone https://github.com/nightwhite/elysia-nuxt-admin
-
-# 进入项目目录
-cd admin-system-template
+cd elysia-nuxt-admin
 
 # 安装依赖
 bun install
+
+# 设置环境变量
+bun run setup
 ```
 
 ### 开发
@@ -119,15 +150,27 @@ bun install
 bun dev
 ```
 
-访问 <http://localhost:3000> 查看应用。
+访问地址：
 
-### 单独启动后端
+- 应用：<http://localhost:3000>
+- API：<http://localhost:3000/api>
+
+### 访问 Swagger 文档（开发模式）
+
+如果需要查看 API 文档，可以单独启动后端服务器：
 
 ```bash
+# 启动独立后端（仅用于访问 Swagger）
 bun run server
 ```
 
-访问swagger文档 <http://localhost:3001/swagger>
+- Swagger 文档：<http://localhost:3001/swagger>
+
+> **说明**：
+>
+> - Swagger 文档只在开发模式下可用
+> - 由于 Nuxt 路由可能会拦截 `/swagger` 路径，建议通过独立后端服务访问 API 文档
+> - 生产环境不会加载 Swagger，以提高性能和安全性
 
 ### 构建
 
@@ -139,21 +182,29 @@ bun run build
 bun run preview
 ```
 
+生产模式下，前后端集成在一个服务中：
+
+- 应用：<http://localhost:3000>
+- API：<http://localhost:3000/api>
+
 ## 项目结构
 
 ```txt
-admin-system-template/
+elysia-nuxt-admin/
 ├── api.ts                 # API 类型定义
 ├── app.vue               # 应用入口
 ├── components/           # Vue 组件
 │   ├── layout/          # 布局组件
 │   └── ui/              # UI 组件
 ├── composables/         # Vue 组合式函数
+├── layouts/             # 页面布局
 ├── pages/               # 页面组件
 ├── server/              # 后端服务
 │   ├── db/             # 数据库配置
 │   ├── routes/         # API 路由
-│   └── services/       # 业务服务
+│   ├── services/       # 业务服务
+│   └── utils/          # 工具函数
+├── scripts/            # 脚本文件
 └── types/              # TypeScript 类型定义
 ```
 

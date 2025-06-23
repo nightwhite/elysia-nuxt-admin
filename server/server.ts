@@ -19,7 +19,10 @@ initDB()
 
 // 创建主应用实例
 export const app = new Elysia()
-  .use(swagger({
+
+// 只在开发模式下加载 Swagger
+if (process.env.NODE_ENV === 'development') {
+  app.use(swagger({
     documentation: {
       info: {
         title: "Admin Template API",
@@ -81,6 +84,10 @@ export const app = new Elysia()
       ]
     }
   }))
+  console.log("📚 Swagger documentation loaded (development mode)")
+}
+
+app
   .use(bearer())
   .use(cors())
   .get("/", "Hello Admin", {
